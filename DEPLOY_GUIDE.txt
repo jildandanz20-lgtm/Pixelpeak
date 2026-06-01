@@ -1,0 +1,194 @@
+# 🚀 PANDUAN DEPLOY: Termux → GitHub → Railway
+# PixelPeak SMP — Step by step dari nol
+
+================================================
+## BAGIAN 1 — SETUP TERMUX (Lakukan sekali saja)
+================================================
+
+# 1. Install package yang dibutuhkan
+pkg update && pkg upgrade -y
+pkg install git nodejs-lts -y
+
+# 2. Setup identitas Git (ganti dengan data kamu)
+git config --global user.name "NamaKamu"
+git config --global user.email "emailkamu@gmail.com"
+
+# 3. Generate SSH key untuk GitHub
+ssh-keygen -t ed25519 -C "emailkamu@gmail.com"
+# Tekan Enter terus (skip passphrase)
+
+# 4. Tampilkan SSH public key — COPY INI
+cat ~/.ssh/id_ed25519.pub
+
+# 5. Tambahkan SSH key ke GitHub:
+#    Buka: https://github.com/settings/keys
+#    → New SSH key → paste key yang tadi di-copy → Add
+
+
+================================================
+## BAGIAN 2 — BUAT REPO GITHUB
+================================================
+
+# 1. Buka: https://github.com/new
+# 2. Repository name: pixelpeak-smp
+# 3. Visibility: Private (rekomendasi) atau Public
+# 4. JANGAN centang "Add README"
+# 5. Klik "Create repository"
+# 6. Copy URL SSH-nya, contoh:
+#    git@github.com:usernamekamu/pixelpeak-smp.git
+
+
+================================================
+## BAGIAN 3 — UPLOAD PROJECT KE GITHUB
+================================================
+
+# 1. Masuk ke folder project (setelah extract zip)
+cd /storage/emulated/0/Download/pixelpeak
+
+# (Kalau belum extract zip, lakukan ini dulu:)
+pkg install unzip -y
+cd /storage/emulated/0/Download
+unzip pixelpeak-smp.zip
+cd pixelpeak
+
+# 2. Init git & push
+git init
+git add .
+git commit -m "🎮 init: PixelPeak SMP"
+git branch -M main
+git remote add origin git@github.com:USERNAMEKAMU/pixelpeak-smp.git
+# ↑ GANTI "USERNAMEKAMU" dengan username GitHub kamu!
+
+git push -u origin main
+
+# ✅ Kalau berhasil, muncul tulisan "main -> main"
+
+
+================================================
+## BAGIAN 4 — SETUP CLERK AUTH
+================================================
+
+# 1. Buka: https://dashboard.clerk.com
+# 2. Klik "Create application"
+# 3. Nama: PixelPeak SMP
+# 4. Centang: ✅ Google  ✅ Email
+# 5. Klik "Create application"
+
+# 6. Di halaman overview Clerk, COPY dua keys ini:
+#    - Publishable key  → pk_test_xxxx...
+#    - Secret key       → sk_test_xxxx...
+
+# 7. Set allowed redirect URLs di Clerk:
+#    Clerk Dashboard → Configure → Domains
+#    → Add domain: https://NAMA-APP-KAMU.up.railway.app
+#    (URL Railway bisa dilihat setelah deploy di langkah 5)
+
+# 8. Di Clerk → Configure → Redirects:
+#    After sign in:  /dashboard
+#    After sign up:  /onboarding
+
+
+================================================
+## BAGIAN 5 — DEPLOY KE RAILWAY
+================================================
+
+# 1. Buka: https://railway.app
+# 2. Login dengan GitHub
+# 3. Klik "New Project"
+# 4. Pilih "Deploy from GitHub repo"
+# 5. Pilih repo "pixelpeak-smp"
+# 6. Railway akan otomatis detect Node.js dan deploy
+
+# 7. Tambah PostgreSQL Database:
+#    Di dashboard project → klik "+ New"
+#    → Database → Add PostgreSQL
+#    Tunggu sampai status "Active"
+
+# 8. Set Environment Variables:
+#    Klik service "pixelpeak-smp" → tab "Variables"
+#    Klik "New Variable" untuk setiap baris berikut:
+
+    DATABASE_URL        → (klik "Add Reference" → pilih Postgres → DATABASE_URL)
+    CLERK_PUBLISHABLE_KEY → pk_test_xxxxx (dari Clerk dashboard)
+    CLERK_SECRET_KEY    → sk_test_xxxxx (dari Clerk dashboard)
+    ADMIN_EMAIL         → emailkamu@gmail.com (email Google kamu yang akan jadi admin)
+
+# 9. Klik "Deploy" / Railway akan otomatis redeploy
+
+# 10. Setelah deploy selesai, klik "Generate Domain"
+#     Kamu akan dapat URL seperti:
+#     https://pixelpeak-smp-production.up.railway.app
+
+
+================================================
+## BAGIAN 6 — FINALISASI CLERK
+================================================
+
+# Setelah dapat URL Railway:
+# 1. Kembali ke Clerk Dashboard → Configure → Domains
+# 2. Tambahkan domain Railway kamu:
+#    https://pixelpeak-smp-production.up.railway.app
+
+# 3. Di Clerk → Configure → Redirects:
+#    After sign-in URL:  https://pixelpeak-smp-production.up.railway.app/dashboard
+#    After sign-up URL:  https://pixelpeak-smp-production.up.railway.app/onboarding
+
+
+================================================
+## BAGIAN 7 — CEK DEPLOY BERHASIL
+================================================
+
+# Buka URL Railway kamu di browser
+# Test:
+# ✅ Halaman Home muncul dengan logo PixelPeak
+# ✅ Klik "Daftar" → muncul form Clerk (ada tombol Google)
+# ✅ Login dengan Google → redirect ke /onboarding (isi MC username)
+# ✅ Setelah isi username → masuk ke /dashboard
+# ✅ Login dengan email ADMIN_EMAIL → ada menu "⚙️ Admin"
+
+# Lihat logs kalau ada error:
+# Railway dashboard → service → tab "Logs"
+
+
+================================================
+## UPDATE KODE (setelah edit file)
+================================================
+
+cd /storage/emulated/0/Download/pixelpeak
+git add .
+git commit -m "update: deskripsi perubahan"
+git push
+
+# Railway otomatis redeploy setiap ada push ke GitHub ✅
+
+
+================================================
+## RINGKASAN ENVIRONMENT VARIABLES RAILWAY
+================================================
+
+| Variable               | Nilai                        |
+|------------------------|------------------------------|
+| DATABASE_URL           | (dari Railway PostgreSQL)    |
+| CLERK_PUBLISHABLE_KEY  | pk_test_xxxx (dari Clerk)    |
+| CLERK_SECRET_KEY       | sk_test_xxxx (dari Clerk)    |
+| ADMIN_EMAIL            | emailkamu@gmail.com          |
+
+
+================================================
+## ALUR LOGIN DENGAN CLERK
+================================================
+
+User klik "Login / Daftar"
+    ↓
+Clerk Hosted UI muncul (Google OAuth atau Email)
+    ↓
+Setelah auth → redirect ke /onboarding (first time)
+    ↓
+User isi username Minecraft → disimpan ke PostgreSQL
+    ↓
+Redirect ke /dashboard
+
+Admin (email sesuai ADMIN_EMAIL):
+    ↓
+Login sama, tapi di navbar muncul "⚙️ Admin"
+Akses /admin untuk manage transaksi
